@@ -1,11 +1,16 @@
 from django.forms import widgets
 from rest_framework import serializers
 from snippets.models import Snippet, LANGUAGE_CHOICES, STYLE_CHOICES
+from django.contrib.auth.models import User
 
-class SnippetSerializer(serializers.ModelSerializer):
+class SnippetSerializer(serializers.HyperlinkedModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+    highlight = serializers.HyperlinkedIdentityField(view_name='snippet-highlight', format='html')
+    
     class Meta:
         model = Snippet
-        fields = ('id', 'title', 'code', 'linenos', 'language', 'style')
+        fields = ('url', 'highlight', 'owner',
+                  'title', 'code', 'linenos', 'language', 'style')
 
     def create(self, validated_data):
         """
@@ -24,3 +29,10 @@ class SnippetSerializer(serializers.ModelSerializer):
         instance.style = validated_data.get('style', instance.style)
         instance.save()
         return instance
+
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+    snippets = serializers.HyperlinkedRelatedField(many=True, view_name='snippet-detail', read_only=True)
+    
+    class Meta:
+        model = User
+        fields = ('url', 'username', 'snippets')
